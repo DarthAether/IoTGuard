@@ -3,7 +3,8 @@ from transformers import BertTokenizer, BertModel
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
+import json
 
 # Load pre-trained BERT model and tokenizer
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -104,48 +105,72 @@ risks = [
 ]
 
 def preprocess_command(command):
-    """
-    Preprocess the command: tokenize it using BERT tokenizer and get embeddings.
-    """
-    # Tokenize the input command
+    """Preprocess the command: tokenize it using BERT tokenizer and get embeddings."""
     inputs = tokenizer(command, return_tensors='pt', padding=True, truncation=True, max_length=64)
-    
-    # Get the BERT embeddings (we'll use the output from the last hidden layer)
     with torch.no_grad():
         outputs = model(**inputs)
-        embeddings = outputs.last_hidden_state.mean(dim=1)  # Pool the embeddings to get a single vector
-    
+        embeddings = outputs.last_hidden_state.mean(dim=1)  # Pool embeddings to a single vector
     return embeddings
 
 def compute_similarity(command_embeddings, risk_embeddings):
-    """
-    Compute cosine similarity between command embeddings and risk embeddings.
-    """
+    """Compute cosine similarity between command embeddings and risk embeddings."""
     similarity_scores = cosine_similarity(command_embeddings.detach().numpy(), risk_embeddings)
     return similarity_scores
 
 def check_risks(command, risks):
-    """
-    Analyze the user's command for potential risks using BERT embeddings.
-    """
+    """Analyze the user's command for potential risks using BERT embeddings."""
     detected_risks = []
-    
-    # Preprocess the input command
     command_embeddings = preprocess_command(command)
     
     for risk in risks:
-        # Preprocess the risk description
         risk_description = f"{risk['trigger']} {risk['condition'] if risk['condition'] else ''} {risk['device']}"
         risk_embeddings = preprocess_command(risk_description)
-        
-        # Compute similarity between the command and risk
         similarity_scores = compute_similarity(command_embeddings, risk_embeddings)
-        
-        # If the similarity score is above a threshold, we consider it a match
-        if similarity_scores > 0.8:  # Threshold can be adjusted
+        if similarity_scores > 0.8:  # Threshold for detection
             detected_risks.append(risk)
-    
     return detected_risks
+
+def save_risks_to_file():
+    """Save the current risks to a JSON file."""
+    file_path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")])
+    if file_path:
+        with open(file_path, 'w') as file:
+            json.dump(risks, file, indent=4)
+        messagebox.showinfo("Success", "Risks saved successfully!")
+
+def load_risks_from_file():
+    """Load risks from a JSON file."""
+    global risks
+    file_path = filedialog.askopenfilename(filetypes=[("JSON files", "*.json")])
+    if file_path:
+        with open(file_path, 'r') as file:
+            risks = json.load(file)
+        messagebox.showinfo("Success", "Risks loaded successfully!")
+
+def add_custom_risk():
+    """Add a custom risk dynamically."""
+    trigger = entry_trigger.get().strip()
+    condition = entry_condition.get().strip()
+    device = entry_device.get().strip()
+    risk_level = entry_risk_level.get().strip()
+    explanation = entry_explanation.get().strip()
+    suggestion = entry_suggestion.get().strip()
+
+    if not trigger or not device or not risk_level or not explanation or not suggestion:
+        messagebox.showwarning("Input Error", "All fields except condition are required!")
+        return
+
+    new_risk = {
+        "risk_id": len(risks) + 1,
+        "trigger": trigger,
+        "condition": condition if condition else None,
+        "device": device,
+        "risk_level": risk_level,
+        "explanation": explanation,
+        "suggestion": suggestion,
+    }
+    risks.append(new_risk)
+    messagebox.showinfo("Success", "Custom risk added successfully!")
 
 def on_submit():
     command = entry.get().strip()
@@ -155,7 +180,7 @@ def on_submit():
 
     detected_risks = check_risks(command, risks)
 
-    result_text.delete(1.0, tk.END)  # Clear previous results
+    result_text.delete(1.0, tk.END)
     if detected_risks:
         result_text.insert(tk.END, f"Command: {command}\nRisks Detected:\n")
         for risk in detected_risks:
@@ -165,22 +190,60 @@ def on_submit():
     else:
         result_text.insert(tk.END, f"Command: {command}\nNo risks detected. Command appears safe.\n")
 
-# Set up the main window
+# GUI Setup
 root = tk.Tk()
 root.title("IoT Command Risk Detector")
 
-# Create widgets
+# Command input
 label = tk.Label(root, text="Enter IoT Command:")
-label.pack(pady=10)
-
+label.pack(pady=5)
 entry = tk.Entry(root, width=50)
-entry.pack(pady=10)
+entry.pack(pady=5)
 
+# Buttons
 submit_button = tk.Button(root, text="Submit", command=on_submit)
-submit_button.pack(pady=10)
+submit_button.pack(pady=5)
 
+save_button = tk.Button(root, text="Save Risks", command=save_risks_to_file)
+save_button.pack(pady=5)
+
+load_button = tk.Button(root, text="Load Risks", command=load_risks_from_file)
+load_button.pack(pady=5)
+
+# Custom risk input
+custom_risk_label = tk.Label(root, text="Add Custom Risk:")
+custom_risk_label.pack(pady=5)
+
+entry_trigger = tk.Entry(root, width=50)
+entry_trigger.pack(pady=2)
+entry_trigger.insert(0, "Trigger")
+
+entry_condition = tk.Entry(root, width=50)
+entry_condition.pack(pady=2)
+entry_condition.insert(0, "Condition (Optional)")
+
+entry_device = tk.Entry(root, width=50)
+entry_device.pack(pady=2)
+entry_device.insert(0, "Device")
+
+entry_risk_level = tk.Entry(root, width=50)
+entry_risk_level.pack(pady=2)
+entry_risk_level.insert(0, "Risk Level")
+
+entry_explanation = tk.Entry(root, width=50)
+entry_explanation.pack(pady=2)
+entry_explanation.insert(0, "Explanation")
+
+entry_suggestion = tk.Entry(root, width=50)
+entry_suggestion.pack(pady=2)
+entry_suggestion.insert(0, "Suggestion")
+
+add_risk_button = tk.Button(root, text="Add Risk", command=add_custom_risk)
+add_risk_button.pack(pady=5)
+
+# Results text box
 result_text = tk.Text(root, height=10, width=50)
-result_text.pack(pady=10)
+result_text.pack(pady=5)
 
-# Run the GUI
+# Run GUI
 root.mainloop()
