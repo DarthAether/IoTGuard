@@ -1,186 +1,126 @@
-import torch
-from transformers import BertTokenizer, BertModel
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
+import google.generativeai as genai
 import tkinter as tk
 from tkinter import messagebox, filedialog
 import json
+import logging
+from datetime import datetime
 
-# Load pre-trained BERT model and tokenizer
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-model = BertModel.from_pretrained('bert-base-uncased')
+# Configure Google API Key
+GOOGLE_API_KEY = "AIzaSyBrXhE8U15tkd6Sm279L8S9OP3misl2Yj8"
+genai.configure(api_key=GOOGLE_API_KEY)
 
-# Predefined risks for IoT commands
-risks = [
-    {
-        "risk_id": 1,
-        "trigger": "unlock",
-        "condition": "when I am close",
-        "device": "door",
-        "risk_level": "High",
-        "explanation": "Proximity-based unlocking can be spoofed, allowing unauthorized access.",
-        "suggestion": "Use fingerprint or PIN-based authentication instead."
-    },
-    {
-        "risk_id": 2,
-        "trigger": "disable",
-        "condition": None,
-        "device": "security camera",
-        "risk_level": "Critical",
-        "explanation": "Disabling security cameras could leave your property unmonitored, increasing the risk of intrusion.",
-        "suggestion": "Ensure camera disable commands require admin authentication."
-    },
-    {
-        "risk_id": 3,
-        "trigger": "turn off",
-        "condition": None,
-        "device": "alarm system",
-        "risk_level": "Critical",
-        "explanation": "Turning off the alarm system without strong authentication may allow burglars to disable security.",
-        "suggestion": "Require multi-factor authentication for alarm control."
-    },
-    {
-        "risk_id": 4,
-        "trigger": "open",
-        "condition": "at 8 PM",
-        "device": "garage door",
-        "risk_level": "Medium",
-        "explanation": "Time-based automatic opening may be exploited if someone knows your schedule.",
-        "suggestion": "Include an additional condition like proximity or authentication."
-    },
-    {
-        "risk_id": 5,
-        "trigger": "play",
-        "condition": "when I am in the kitchen",
-        "device": "music",
-        "risk_level": "Low",
-        "explanation": "This command doesn't pose significant risks but might trigger unintentionally if not well-defined.",
-        "suggestion": "Add more specific location-based criteria, like device pairing or user confirmation."
-    },
-    {
-        "risk_id": 6,
-        "trigger": "unlock",
-        "condition": "for delivery",
-        "device": "door",
-        "risk_level": "High",
-        "explanation": "Unlocking for deliveries may expose your property to unauthorized access if the delivery personnel’s identity is not verified.",
-        "suggestion": "Use a one-time authentication code for delivery personnel."
-    },
-    {
-        "risk_id": 7,
-        "trigger": "disable",
-        "condition": "for 10 minutes",
-        "device": "fire alarm",
-        "risk_level": "Critical",
-        "explanation": "Disabling fire alarms, even temporarily, increases the risk of fire hazards going undetected.",
-        "suggestion": "Only allow disabling with admin-level authentication and log the event."
-    },
-    {
-        "risk_id": 8,
-        "trigger": "start",
-        "condition": None,
-        "device": "car engine",
-        "risk_level": "High",
-        "explanation": "Starting the car engine remotely without user verification may lead to unauthorized use.",
-        "suggestion": "Ensure the command requires user proximity or authentication."
-    },
-    {
-        "risk_id": 9,
-        "trigger": "open",
-        "condition": "during the night",
-        "device": "window blinds",
-        "risk_level": "Medium",
-        "explanation": "Opening window blinds at night could reveal your home to external threats.",
-        "suggestion": "Consider adding a time-based lockout to prevent opening during night hours."
-    },
-    {
-        "risk_id": 10,
-        "trigger": "start",
-        "condition": "on low battery",
-        "device": "robot vacuum",
-        "risk_level": "Medium",
-        "explanation": "Starting the robot vacuum on low battery might cause it to stop mid-cleaning.",
-        "suggestion": "Ensure the vacuum starts only when the battery is sufficiently charged."
-    }
-]
+# Set up logging
+logging.basicConfig(filename='iotguard_log.txt', level=logging.INFO, 
+                    format='%(asctime)s - %(message)s')
 
-def preprocess_command(command):
-    """Preprocess the command: tokenize it using BERT tokenizer and get embeddings."""
-    inputs = tokenizer(command, return_tensors='pt', padding=True, truncation=True, max_length=64)
-    with torch.no_grad():
-        outputs = model(**inputs)
-        embeddings = outputs.last_hidden_state.mean(dim=1)  # Pool embeddings to a single vector
-    return embeddings
+# Initialize Gemini model
+try:
+    model = genai.GenerativeModel('gemini-1.5-flash')
+except AttributeError:
+    print("Error: 'GenerativeModel' not found. Please update google-generativeai to 0.7.2 or higher.")
+    exit(1)
 
-def compute_similarity(command_embeddings, risk_embeddings):
-    """Compute cosine similarity between command embeddings and risk embeddings."""
-    similarity_scores = cosine_similarity(command_embeddings.detach().numpy(), risk_embeddings)
-    return similarity_scores
+custom_risks = []
 
-def check_risks(command, risks):
-    """Analyze the user's command for potential risks using BERT embeddings."""
-    detected_risks = []
-    command_embeddings = preprocess_command(command)
+def analyze_command_with_gemini(command):
+    prompt = f"""
+    You are an IoT security expert. Analyze this IoT command for security risks:
+    Command: "{command}"
     
-    for risk in risks:
-        risk_description = f"{risk['trigger']} {risk['condition'] if risk['condition'] else ''} {risk['device']}"
-        risk_embeddings = preprocess_command(risk_description)
-        similarity_scores = compute_similarity(command_embeddings, risk_embeddings)
-        if similarity_scores > 0.8:  # Threshold for detection
-            detected_risks.append(risk)
+    Respond in this format:
+    - Risk Level: [Low/Medium/High/Critical]
+    - Explanation: [Why is this risky?]
+    - Suggestion: [How to mitigate the risk?]
+    
+    If no risks are detected:
+    - Risk Level: None
+    - Explanation: No significant security risks identified.
+    - Suggestion: No action required.
+    """
+    try:
+        response = model.generate_content(prompt)
+        return response.text.strip()
+    except Exception as e:
+        logging.error(f"Gemini API error: {str(e)}")
+        return f"Error: Could not analyze command - {str(e)}"
+
+def check_risks(command):
+    gemini_response = analyze_command_with_gemini(command)
+    detected_risks = []
+    
+    if gemini_response.startswith("Error:"):
+        return detected_risks
+    
+    lines = gemini_response.split('\n')
+    risk_data = {}
+    
+    for line in lines:
+        if line.startswith("- Risk Level:"):
+            risk_data["risk_level"] = line.split(":")[1].strip()
+        elif line.startswith("- Explanation:"):
+            risk_data["explanation"] = line.split(":")[1].strip()
+        elif line.startswith("- Suggestion:"):
+            risk_data["suggestion"] = line.split(":")[1].strip()
+    
+    if "risk_level" in risk_data and risk_data["risk_level"] != "None":
+        detected_risks.append(risk_data)
+        logging.info(f"Risk detected for: {command} - {risk_data['risk_level']}")
+    elif risk_data.get("risk_level") == "None":
+        logging.info(f"No risks detected for: {command}")
+    
     return detected_risks
 
-def save_risks_to_file():
-    """Save the current risks to a JSON file."""
+def save_risks():
     file_path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")])
     if file_path:
         with open(file_path, 'w') as file:
-            json.dump(risks, file, indent=4)
-        messagebox.showinfo("Success", "Risks saved successfully!")
+            json.dump(custom_risks, file, indent=4)
+        messagebox.showinfo("Success", "Custom risks saved!")
 
-def load_risks_from_file():
-    """Load risks from a JSON file."""
-    global risks
+def load_risks():
+    global custom_risks
     file_path = filedialog.askopenfilename(filetypes=[("JSON files", "*.json")])
     if file_path:
         with open(file_path, 'r') as file:
-            risks = json.load(file)
-        messagebox.showinfo("Success", "Risks loaded successfully!")
+            custom_risks = json.load(file)
+        messagebox.showinfo("Success", "Custom risks loaded!")
 
 def add_custom_risk():
-    """Add a custom risk dynamically."""
-    trigger = entry_trigger.get().strip()
-    condition = entry_condition.get().strip()
-    device = entry_device.get().strip()
-    risk_level = entry_risk_level.get().strip()
-    explanation = entry_explanation.get().strip()
-    suggestion = entry_suggestion.get().strip()
-
-    if not trigger or not device or not risk_level or not explanation or not suggestion:
-        messagebox.showwarning("Input Error", "All fields except condition are required!")
-        return
-
-    new_risk = {
-        "risk_id": len(risks) + 1,
-        "trigger": trigger,
-        "condition": condition if condition else None,
-        "device": device,
-        "risk_level": risk_level,
-        "explanation": explanation,
-        "suggestion": suggestion,
+    fields = {
+        "trigger": entry_trigger.get().strip(),
+        "condition": entry_condition.get().strip() or None,
+        "device": entry_device.get().strip(),
+        "risk_level": entry_risk_level.get().strip(),
+        "explanation": entry_explanation.get().strip(),
+        "suggestion": entry_suggestion.get().strip()
     }
-    risks.append(new_risk)
-    messagebox.showinfo("Success", "Custom risk added successfully!")
+    
+    if not all(fields[k] for k in ["trigger", "device", "risk_level", "explanation", "suggestion"]):
+        messagebox.showwarning("Input Error", "All fields except Condition are mandatory!")
+        return
+    
+    new_risk = {"risk_id": len(custom_risks) + 1, **fields}
+    custom_risks.append(new_risk)
+    messagebox.showinfo("Success", "Custom risk added!")
+    clear_custom_risk_fields()
+
+def clear_custom_risk_fields():
+    entry_trigger.delete(0, tk.END)
+    entry_condition.delete(0, tk.END)
+    entry_device.delete(0, tk.END)
+    entry_risk_level.delete(0, tk.END)
+    entry_explanation.delete(0, tk.END)
+    entry_suggestion.delete(0, tk.END)
 
 def on_submit():
-    command = entry.get().strip()
+    command = entry_command.get().strip()
     if not command:
-        messagebox.showwarning("Input Error", "Please enter a command.")
+        messagebox.showwarning("Input Error", "Enter a command!")
         return
-
-    detected_risks = check_risks(command, risks)
-
+    
+    detected_risks = check_risks(command)
     result_text.delete(1.0, tk.END)
+    
     if detected_risks:
         result_text.insert(tk.END, f"Command: {command}\nRisks Detected:\n")
         for risk in detected_risks:
@@ -188,62 +128,39 @@ def on_submit():
             result_text.insert(tk.END, f"  Explanation: {risk['explanation']}\n")
             result_text.insert(tk.END, f"  Suggestion: {risk['suggestion']}\n\n")
     else:
-        result_text.insert(tk.END, f"Command: {command}\nNo risks detected. Command appears safe.\n")
+        result_text.insert(tk.END, f"Command: {command}\nNo risks detected. Looks safe!\n")
+    
+    logging.info(f"Command processed: {command}")
 
 # GUI Setup
 root = tk.Tk()
-root.title("IoT Command Risk Detector")
+root.title("IoTGuard - Powered by Gemini AI")
+root.geometry("600x700")
 
-# Command input
-label = tk.Label(root, text="Enter IoT Command:")
-label.pack(pady=5)
-entry = tk.Entry(root, width=50)
-entry.pack(pady=5)
+frame_command = tk.LabelFrame(root, text="Enter IoT Command", padx=10, pady=10)
+frame_command.pack(padx=10, pady=5, fill="x")
+entry_command = tk.Entry(frame_command, width=50)
+entry_command.pack(pady=5)
+tk.Button(frame_command, text="Check Risks", command=on_submit).pack(pady=5)
 
-# Buttons
-submit_button = tk.Button(root, text="Submit", command=on_submit)
-submit_button.pack(pady=5)
+frame_risk = tk.LabelFrame(root, text="Add Custom Risk", padx=10, pady=10)
+frame_risk.pack(padx=10, pady=5, fill="x")
 
-save_button = tk.Button(root, text="Save Risks", command=save_risks_to_file)
-save_button.pack(pady=5)
+for label, var in [("Trigger", "entry_trigger"), ("Condition (Optional)", "entry_condition"), 
+                   ("Device", "entry_device"), ("Risk Level", "entry_risk_level"), 
+                   ("Explanation", "entry_explanation"), ("Suggestion", "entry_suggestion")]:
+    tk.Label(frame_risk, text=label).pack()
+    globals()[var] = tk.Entry(frame_risk, width=50)
+    globals()[var].pack(pady=2)
 
-load_button = tk.Button(root, text="Load Risks", command=load_risks_from_file)
-load_button.pack(pady=5)
+tk.Button(frame_risk, text="Add Risk", command=add_custom_risk).pack(pady=5)
 
-# Custom risk input
-custom_risk_label = tk.Label(root, text="Add Custom Risk:")
-custom_risk_label.pack(pady=5)
+frame_buttons = tk.Frame(root)
+frame_buttons.pack(pady=5)
+tk.Button(frame_buttons, text="Save Custom Risks", command=save_risks).grid(row=0, column=0, padx=5)
+tk.Button(frame_buttons, text="Load Custom Risks", command=load_risks).grid(row=0, column=1, padx=5)
 
-entry_trigger = tk.Entry(root, width=50)
-entry_trigger.pack(pady=2)
-entry_trigger.insert(0, "Trigger")
+result_text = tk.Text(root, height=10, width=60, wrap="word")
+result_text.pack(padx=10, pady=10)
 
-entry_condition = tk.Entry(root, width=50)
-entry_condition.pack(pady=2)
-entry_condition.insert(0, "Condition (Optional)")
-
-entry_device = tk.Entry(root, width=50)
-entry_device.pack(pady=2)
-entry_device.insert(0, "Device")
-
-entry_risk_level = tk.Entry(root, width=50)
-entry_risk_level.pack(pady=2)
-entry_risk_level.insert(0, "Risk Level")
-
-entry_explanation = tk.Entry(root, width=50)
-entry_explanation.pack(pady=2)
-entry_explanation.insert(0, "Explanation")
-
-entry_suggestion = tk.Entry(root, width=50)
-entry_suggestion.pack(pady=2)
-entry_suggestion.insert(0, "Suggestion")
-
-add_risk_button = tk.Button(root, text="Add Risk", command=add_custom_risk)
-add_risk_button.pack(pady=5)
-
-# Results text box
-result_text = tk.Text(root, height=10, width=50)
-result_text.pack(pady=5)
-
-# Run GUI
 root.mainloop()

@@ -1,0 +1,152 @@
+[
+    {
+        "risk_id": 1,
+        "trigger": "unlock",
+        "condition": "when motion is detected",
+        "device": "front door",
+        "risk_level": "Critical",
+        "category": "Security",
+        "explanation": "Motion-based unlocking can be triggered by unauthorized individuals or animals.",
+        "suggestion": "Combine motion detection with facial recognition for secure access."
+    },
+    {
+        "risk_id": 2,
+        "trigger": "disable",
+        "condition": "for 30 minutes",
+        "device": "smoke detector",
+        "risk_level": "Critical",
+        "category": "Safety",
+        "explanation": "Temporary disabling of safety devices creates fire hazards.",
+        "suggestion": "Require physical button press and admin approval for disabling."
+    },
+    {
+        "risk_id": 3,
+        "trigger": "share",
+        "condition": "live feed",
+        "device": "baby monitor",
+        "risk_level": "High",
+        "category": "Privacy",
+        "explanation": "Live video streaming could be intercepted by unauthorized parties.",
+        "suggestion": "Enable end-to-end encryption and access whitelisting."
+    },
+    {
+        "risk_id": 4,
+        "trigger": "override",
+        "condition": "temperature limit",
+        "device": "water heater",
+        "risk_level": "High",
+        "category": "Safety",
+        "explanation": "Excessive temperatures can cause scalding or equipment damage.",
+        "suggestion": "Implement hardware-enforced maximum temperature limits."
+    },
+    {
+        "risk_id": 5,
+        "trigger": "start",
+        "condition": "when unoccupied",
+        "device": "oven",
+        "risk_level": "Critical",
+        "category": "Safety",
+        "explanation": "Remote oven activation without occupancy verification creates fire risks.",
+        "suggestion": "Require proximity sensor confirmation before activation."
+    },
+    {
+        "risk_id": 6,
+        "trigger": "open",
+        "condition": "during vacation mode",
+        "device": "garage door",
+        "risk_level": "High",
+        "category": "Security",
+        "explanation": "Unexpected door openings while away could indicate intrusions.",
+        "suggestion": "Enable vacation mode lockdown with temporary access codes."
+    },
+    {
+        "risk_id": 7,
+        "trigger": "disable",
+        "condition": "emergency alerts",
+        "device": "security system",
+        "risk_level": "Critical",
+        "category": "Safety",
+        "explanation": "Silencing alerts prevents response to critical situations.",
+        "suggestion": "Maintain separate uninterruptible emergency notification channel."
+    },
+    {
+        "risk_id": 8,
+        "trigger": "adjust",
+        "condition": "to maximum level",
+        "device": "smart lock",
+        "risk_level": "Medium",
+        "category": "Security",
+        "explanation": "Overriding torque limits can damage locking mechanisms.",
+        "suggestion": "Implement manufacturer-approved force limits with alerts."
+    },
+    {
+        "risk_id": 9,
+        "trigger": "bypass",
+        "condition": "child safety lock",
+        "device": "medicine cabinet",
+        "risk_level": "High",
+        "category": "Safety",
+        "explanation": "Unauthorized access to medications creates poisoning risks.",
+        "suggestion": "Require biometric authentication for safety lock overrides."
+    },
+    {
+        "risk_id": 10,
+        "trigger": "activate",
+        "condition": "all zones simultaneously",
+        "device": "irrigation system",
+        "risk_level": "Medium",
+        "category": "Safety",
+        "explanation": "Full system activation can cause water pressure hazards.",
+        "suggestion": "Implement sequential activation with pressure monitoring."
+    },
+    {
+        "risk_id": 11,
+        "trigger": "disable",
+        "condition": "automatic braking",
+        "device": "smart car",
+        "risk_level": "Critical",
+        "category": "Safety",
+        "explanation": "Manual override of safety systems increases collision risks.",
+        "suggestion": "Maintain emergency-only access through physical controls."
+    },
+    {
+        "risk_id": 12,
+        "trigger": "share",
+        "condition": "permanent access",
+        "device": "security cameras",
+        "risk_level": "High",
+        "category": "Privacy",
+        "explanation": "Indefinite access grants could lead to surveillance abuse.",
+        "suggestion": "Implement expiring access tokens with usage auditing."
+    },
+    {
+        "risk_id": 13,
+        "trigger": "override",
+        "condition": "schedule",
+        "device": "smart thermostat",
+        "risk_level": "Medium",
+        "category": "Safety",
+        "explanation": "Extreme temperature overrides can damage HVAC systems.",
+        "suggestion": "Enforce manufacturer-recommended temperature ranges."
+    },
+    {
+        "risk_id": 14,
+        "trigger": "activate",
+        "condition": "all outlets",
+        "device": "power strip",
+        "risk_level": "High",
+        "category": "Safety",
+        "explanation": "Simultaneous high-load activation risks electrical fires.",
+        "suggestion": "Implement staggered power-on sequencing with load monitoring."
+    },
+    {
+        "risk_id": 15,
+        "trigger": "disable",
+        "condition": "low battery alerts",
+        "device": "security sensors",
+        "risk_level": "Critical",
+        "category": "Security",
+        "explanation": "Silencing alerts could lead to undetected device failures.",
+        "suggestion": "Maintain critical system alerts as non-disablable."
+    }
+]
