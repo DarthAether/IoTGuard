@@ -1,1 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+myenv/
+
+# Database and logs
+resources/users.db
+resources/iotguard_log.txt
+
+# Environment variables
 .env
