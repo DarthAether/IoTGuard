@@ -1,0 +1,4 @@
+PySide6
+google-generativeai
+paho-mqtt
+python-dotenv

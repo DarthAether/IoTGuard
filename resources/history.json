@@ -1,0 +1,11 @@
+[
+    "master_user: unlock door - Risk: High - Result: Command not executed",
+    "master_user: unlock door - Risk: High - Result: Command not executed",
+    "[2025-03-28 09:08:29] master_user: unlock door - Risk: High - Result: Command not executed",
+    "[2025-03-28 09:09:34] master_user: play music - Risk: High - Result: Command not executed",
+    "[2025-03-28 09:09:42] master_user: play music - Risk: High - Result: Command not executed",
+    "[2025-03-28 09:09:46] master_user: play music - Risk: High - Result: Command not executed",
+    "[2025-03-28 09:10:01] master_user: play music on speakers - Risk: Low - Result: Command not executed",
+    "[2025-03-28 09:51:25] master_user: disable camera1 for 2 min (Device: camera1) - Risk: Medium - Result: Command not executed",
+    "[2025-03-28 10:38:46] master_user: turn off camera for one min (Device: camera1) - Risk: Medium - Result: Command not executed"
+]
