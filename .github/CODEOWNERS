@@ -1,0 +1,13 @@
+# IoTGuard Code Owners
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+* @DarthAether
+
+# Core security module
+src/iotguard/core/security.py @DarthAether
+src/iotguard/analysis/ @DarthAether
+
+# Infrastructure
+docker/ @DarthAether
+.github/ @DarthAether

@@ -1,0 +1,13 @@
+apiVersion: 1
+
+providers:
+  - name: "IoTGuard"
+    orgId: 1
+    folder: "IoTGuard"
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false
