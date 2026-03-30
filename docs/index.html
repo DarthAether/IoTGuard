@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IoTGuard — IoT Command Security Platform</title>
+  <meta name="description" content="Enterprise IoT command security with LLM-based risk analysis, rule engine, and MQTT integration." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%94%90</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #050505;
+      --surface: #0a0a0a;
+      --surface-2: #111111;
+      --border: #1a1a1a;
+      --border-accent: #06b6d433;
+      --text: #e5e5e5;
+      --text-muted: #737373;
+      --accent: #06b6d4;
+      --accent-dim: #06b6d422;
+      --font-display: 'Clash Display', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    ::selection { background: var(--accent); color: var(--bg); }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes glow {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+
+    .animate { opacity: 0; }
+    .animate.visible { animation: fadeUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+    .animate.visible:nth-child(2) { animation-delay: 0.1s; }
+    .animate.visible:nth-child(3) { animation-delay: 0.2s; }
+    .animate.visible:nth-child(4) { animation-delay: 0.3s; }
+
+    .top-bar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem; height: 48px;
+      background: rgba(5, 5, 5, 0.85); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.7rem;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);
+    }
+    .top-bar a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
+    .top-bar a:hover { color: #22d3ee; }
+    .top-bar-left { display: flex; align-items: center; gap: 0.75rem; }
+    .top-bar-dot {
+      width: 6px; height: 6px; background: var(--accent);
+      border-radius: 50%; animation: glow 2s infinite;
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+
+    /* Hero */
+    .hero {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      text-align: center; padding: 8rem 2rem 4rem; position: relative;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, var(--accent-dim) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-tag {
+      display: inline-block; font-family: var(--font-mono); font-size: 0.7rem;
+      letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent);
+      border: 1px solid var(--border-accent); padding: 0.4rem 1rem;
+      border-radius: 100px; margin-bottom: 2rem; animation: fadeIn 1s 0.2s both;
+    }
+    .hero h1 {
+      font-family: var(--font-display); font-size: clamp(3rem, 8vw, 5.5rem);
+      font-weight: 600; line-height: 1.05; letter-spacing: -0.03em;
+      color: #fff; margin-bottom: 1.5rem; animation: fadeUp 0.8s 0.3s both;
+    }
+    .hero h1 span.accent { color: var(--accent); }
+    .hero-tagline {
+      font-size: 1.15rem; color: var(--text-muted); max-width: 620px;
+      margin: 0 auto 3rem; line-height: 1.7; animation: fadeUp 0.8s 0.5s both;
+    }
+    .hero-stats {
+      display: flex; justify-content: center; gap: 2.5rem; flex-wrap: wrap;
+      animation: fadeUp 0.8s 0.7s both;
+    }
+    .hero-stat { text-align: center; }
+    .hero-stat-value {
+      font-family: var(--font-mono); font-size: 1.8rem; font-weight: 700; color: var(--accent);
+      display: block;
+    }
+    .hero-stat-label {
+      font-family: var(--font-mono); font-size: 0.6rem; text-transform: uppercase;
+      letter-spacing: 0.12em; color: var(--text-muted); margin-top: 0.25rem;
+    }
+    .scroll-line {
+      position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+      animation: fadeIn 1s 1s both;
+    }
+    .scroll-line span {
+      font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--text-muted);
+    }
+    .scroll-line-bar {
+      width: 1px; height: 40px;
+      background: linear-gradient(to bottom, var(--accent), transparent);
+      animation: glow 2s infinite;
+    }
+
+    section { padding: 6rem 0; }
+    .section-label {
+      font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 1rem;
+    }
+    .section-title {
+      font-family: var(--font-display); font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 600; color: #fff; margin-bottom: 3rem; letter-spacing: -0.02em;
+    }
+
+    /* Architecture */
+    .arch-block {
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 2rem; overflow-x: auto; margin-bottom: 1rem;
+    }
+    .arch-block pre {
+      font-family: var(--font-mono); font-size: 0.75rem; line-height: 1.8;
+      color: var(--text); white-space: pre; margin: 0;
+    }
+    .arch-block .hl { color: var(--accent); }
+    .arch-block .dim { color: var(--text-muted); }
+    .arch-block .wh { color: #fff; font-weight: 600; }
+
+    /* Features */
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;
+    }
+    .feature-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 1.75rem; transition: border-color 0.3s, transform 0.3s;
+    }
+    .feature-card:hover { border-color: var(--border-accent); transform: translateY(-2px); }
+    .feature-icon { font-size: 1.5rem; margin-bottom: 0.75rem; }
+    .feature-card h3 {
+      font-family: var(--font-display); font-size: 1.05rem; font-weight: 500;
+      color: #fff; margin-bottom: 0.5rem;
+    }
+    .feature-card p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; }
+
+    /* Tech */
+    .tech-grid { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+    .tech-badge {
+      font-family: var(--font-mono); font-size: 0.7rem; padding: 0.35rem 0.85rem;
+      border: 1px solid var(--border); border-radius: 100px; color: var(--text-muted);
+      transition: border-color 0.2s, color 0.2s; white-space: nowrap;
+    }
+    .tech-badge:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Metrics */
+    .metrics-row {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1.25rem;
+    }
+    .metric-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 1.5rem; text-align: center; transition: border-color 0.3s;
+    }
+    .metric-card:hover { border-color: var(--border-accent); }
+    .metric-value {
+      font-family: var(--font-mono); font-size: 2rem; font-weight: 700;
+      color: var(--accent); display: block;
+    }
+    .metric-label {
+      font-family: var(--font-mono); font-size: 0.65rem; text-transform: uppercase;
+      letter-spacing: 0.12em; color: var(--text-muted); margin-top: 0.35rem; display: block;
+    }
+
+    /* Code */
+    .code-block {
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+    }
+    .code-header {
+      display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.25rem;
+      border-bottom: 1px solid var(--border); font-family: var(--font-mono);
+      font-size: 0.7rem; color: var(--text-muted);
+    }
+    .code-dots { display: flex; gap: 0.35rem; }
+    .code-dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+    .code-dots span:first-child { background: #ef4444; }
+    .code-dots span:nth-child(2) { background: #eab308; }
+    .code-dots span:last-child { background: #22c55e; }
+    .code-body { padding: 1.25rem; overflow-x: auto; }
+    .code-body pre {
+      font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.7;
+      color: var(--text); margin: 0; white-space: pre;
+    }
+    .code-body .cm { color: var(--text-muted); }
+    .code-body .cmd { color: var(--accent); }
+    .code-body .flag { color: #a78bfa; }
+
+    /* API Table */
+    .api-table {
+      width: 100%; border-collapse: collapse; margin-top: 1.5rem;
+    }
+    .api-table th, .api-table td {
+      text-align: left; padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border); font-size: 0.8rem;
+    }
+    .api-table th {
+      font-family: var(--font-mono); font-size: 0.65rem; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--text-muted);
+    }
+    .api-table td { font-family: var(--font-mono); }
+    .api-table .method {
+      display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px;
+      font-size: 0.65rem; font-weight: 600;
+    }
+    .method-get { background: #22c55e22; color: #22c55e; }
+    .method-post { background: #3b82f622; color: #3b82f6; }
+    .method-put { background: #eab30822; color: #eab308; }
+    .api-table .endpoint { color: var(--text); }
+    .api-table .desc { color: var(--text-muted); font-family: var(--font-body); }
+
+    /* Links */
+    .links-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 2rem; }
+    .link-btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      font-family: var(--font-mono); font-size: 0.8rem; padding: 0.75rem 1.5rem;
+      border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+      text-decoration: none; transition: border-color 0.3s, background 0.3s;
+    }
+    .link-btn:hover { border-color: var(--accent); background: var(--accent-dim); }
+    .link-btn.primary {
+      background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600;
+    }
+    .link-btn.primary:hover { background: #0891b2; border-color: #0891b2; }
+
+    footer {
+      padding: 3rem 0; text-align: center; border-top: 1px solid var(--border);
+    }
+    footer p {
+      font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 768px) {
+      .top-bar { padding: 0 1rem; font-size: 0.6rem; }
+      .hero { padding: 6rem 1.5rem 3rem; }
+      .hero-stat-value { font-size: 1.4rem; }
+      .hero-stats { gap: 1.5rem; }
+      section { padding: 4rem 0; }
+      .container { padding: 0 1.25rem; }
+      .arch-block { padding: 1.25rem; }
+      .arch-block pre { font-size: 0.6rem; }
+      .features-grid { grid-template-columns: 1fr; }
+      .metrics-row { grid-template-columns: repeat(2, 1fr); }
+      .api-table { font-size: 0.7rem; }
+      .api-table th, .api-table td { padding: 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <span>IoTGuard</span>
+      <span class="top-bar-dot"></span>
+      <span>Command Security</span>
+    </div>
+    <div>
+      <a href="https://github.com/DarthAether/IoTGuard" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div>
+      <div class="hero-tag">IoT Command Security</div>
+      <h1>IoT<span class="accent">Guard</span></h1>
+      <p class="hero-tagline">
+        Enterprise IoT command security with LLM-based risk analysis, rule engine, and MQTT integration
+      </p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <span class="hero-stat-value">10,255</span>
+          <span class="hero-stat-label">Lines of Code</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-value">92</span>
+          <span class="hero-stat-label">Files</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-value">6</span>
+          <span class="hero-stat-label">ORM Models</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-value">5</span>
+          <span class="hero-stat-label">Device Types</span>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-line">
+      <span>Scroll</span>
+      <div class="scroll-line-bar"></div>
+    </div>
+  </section>
+
+  <!-- Architecture -->
+  <section id="architecture">
+    <div class="container">
+      <div class="animate">
+        <div class="section-label">// System Architecture</div>
+        <h2 class="section-title">Security Pipeline</h2>
+      </div>
+      <div class="arch-block animate">
+<pre><span class="dim">┌──────────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="dim">│</span>                     <span class="wh">IoTGuard — Command Security Pipeline</span>                      <span class="dim">│</span>
+<span class="dim">├──────────────────────────────────────────────────────────────────────────────────┤</span>
+<span class="dim">│</span>                                                                                  <span class="dim">│</span>
+<span class="dim">│</span>                      <span class="hl">┌─────────────────────┐</span>                                    <span class="dim">│</span>
+<span class="dim">│</span>                      <span class="hl">│</span>    <span class="wh">IoT Command</span>      <span class="hl">│</span>  <span class="dim">Incoming device command</span>            <span class="dim">│</span>
+<span class="dim">│</span>                      <span class="hl">└─────────┬───────────┘</span>                                    <span class="dim">│</span>
+<span class="dim">│</span>                                <span class="dim">▼</span>                                                  <span class="dim">│</span>
+<span class="dim">│</span>                   <span class="hl">┌──────────────────────────┐</span>                                 <span class="dim">│</span>
+<span class="dim">│</span>                   <span class="hl">│</span>  <span class="wh">Security Rules Engine</span>   <span class="hl">│</span>  <span class="dim">Regex pattern matching</span>           <span class="dim">│</span>
+<span class="dim">│</span>                   <span class="hl">└────────────┬─────────────┘</span>                                 <span class="dim">│</span>
+<span class="dim">│</span>                                <span class="dim">▼</span>                                                  <span class="dim">│</span>
+<span class="dim">│</span>                   <span class="hl">┌──────────────────────────┐</span>                                 <span class="dim">│</span>
+<span class="dim">│</span>                   <span class="hl">│</span>  <span class="wh">Gemini AI Analysis</span>      <span class="hl">│</span>  <span class="dim">LLM-based risk scoring</span>           <span class="dim">│</span>
+<span class="dim">│</span>                   <span class="hl">└────────────┬─────────────┘</span>                                 <span class="dim">│</span>
+<span class="dim">│</span>                                <span class="dim">▼</span>                                                  <span class="dim">│</span>
+<span class="dim">│</span>                   <span class="hl">┌──────────────────────────┐</span>                                 <span class="dim">│</span>
+<span class="dim">│</span>                   <span class="hl">│</span>    <span class="wh">Risk Assessment</span>       <span class="hl">│</span>  <span class="dim">Score + recommendation</span>           <span class="dim">│</span>
+<span class="dim">│</span>                   <span class="hl">└─────┬───────────┬────────┘</span>                                 <span class="dim">│</span>
+<span class="dim">│</span>               <span class="dim">SAFE │             │ BLOCKED</span>                                    <span class="dim">│</span>
+<span class="dim">│</span>                    <span class="dim">▼</span>             <span class="dim">▼</span>                                              <span class="dim">│</span>
+<span class="dim">│</span>          <span class="hl">┌──────────────┐ ┌───────────────┐</span>                                  <span class="dim">│</span>
+<span class="dim">│</span>          <span class="hl">│</span>  <span class="wh">Execute</span>     <span class="hl">│ │</span>  <span class="wh">Block + Log</span>  <span class="hl">│</span>                                  <span class="dim">│</span>
+<span class="dim">│</span>          <span class="hl">└──────┬───────┘ └───────────────┘</span>                                  <span class="dim">│</span>
+<span class="dim">│</span>                 <span class="dim">▼</span>                                                               <span class="dim">│</span>
+<span class="dim">│</span>          <span class="hl">┌──────────────┐</span>         <span class="hl">┌──────────────────┐</span>                      <span class="dim">│</span>
+<span class="dim">│</span>          <span class="hl">│</span> <span class="wh">MQTT Bridge</span>  <span class="hl">│</span> ──────▶ <span class="hl">│</span>  <span class="wh">IoT Device</span>      <span class="hl">│</span>                      <span class="dim">│</span>
+<span class="dim">│</span>          <span class="hl">└──────────────┘</span>         <span class="hl">└──────────────────┘</span>                      <span class="dim">│</span>
+<span class="dim">│</span>                                                                                  <span class="dim">│</span>
+<span class="dim">│</span>          <span class="hl">┌──────────────┐</span>         <span class="hl">┌──────────────────┐</span>                      <span class="dim">│</span>
+<span class="dim">│</span>          <span class="hl">│</span>  <span class="wh">Audit Log</span>   <span class="hl">│</span> ──────▶ <span class="hl">│</span>  <span class="wh">PostgreSQL</span>      <span class="hl">│</span>                      <span class="dim">│</span>
+<span class="dim">│</span>          <span class="hl">└──────────────┘</span>         <span class="hl">└──────────────────┘</span>                      <span class="dim">│</span>
+<span class="dim">│</span>                                                                                  <span class="dim">│</span>
+<span class="dim">└──────────────────────────────────────────────────────────────────────────────────┘</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features">
+    <div class="container">
+      <div class="animate">
+        <div class="section-label">// Key Features</div>
+        <h2 class="section-title">Capabilities</h2>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card animate">
+          <div class="feature-icon">&#x1F9E0;</div>
+          <h3>LLM Risk Analysis</h3>
+          <p>Google Gemini-powered command analysis that understands device context, command semantics, and potential security implications beyond simple pattern matching.</p>
+        </div>
+        <div class="feature-card animate">
+          <div class="feature-icon">&#x1F4DC;</div>
+          <h3>Regex Security Rules</h3>
+          <p>Configurable rule engine with regex pattern matching for fast, deterministic command filtering before LLM analysis.</p>
+        </div>
+        <div class="feature-card animate">
+          <div class="feature-icon">&#x1F4E1;</div>
+          <h3>MQTT Device Bridge</h3>
+          <p>Native MQTT integration for bidirectional device communication. Publish verified commands and subscribe to device telemetry.</p>
+        </div>
+        <div class="feature-card animate">
+          <div class="feature-icon">&#x1F512;</div>
+          <h3>JWT + RBAC</h3>
+          <p>Role-based access control with JWT authentication. Fine-grained permissions for device management, rule configuration, and command execution.</p>
+        </div>
+        <div class="feature-card animate">
+          <div class="feature-icon">&#x26A1;</div>
+          <h3>Redis Caching</h3>
+          <p>Redis-backed caching layer for LLM responses and rule evaluations, reducing latency on repeated command patterns.</p>
+        </div>
+        <div class="feature-card animate">
+          <div class="feature-icon">&#x1F4CA;</div>
+          <h3>Prometheus + Grafana</h3>
+          <p>Full observability stack with custom metrics for command throughput, risk score distribution, block rates, and MQTT health.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech Stack -->
+  <section id="tech-stack">
+    <div class="container">
+      <div class="animate">
+        <div class="section-label">// Tech Stack</div>
+        <h2 class="section-title">Built With</h2>
+      </div>
+      <div class="tech-grid animate">
+        <span class="tech-badge">Python</span>
+        <span class="tech-badge">FastAPI</span>
+        <span class="tech-badge">Google Gemini</span>
+        <span class="tech-badge">MQTT</span>
+        <span class="tech-badge">PostgreSQL</span>
+        <span class="tech-badge">SQLAlchemy</span>
+        <span class="tech-badge">Redis</span>
+        <span class="tech-badge">JWT / RBAC</span>
+        <span class="tech-badge">Prometheus</span>
+        <span class="tech-badge">Grafana</span>
+        <span class="tech-badge">Docker</span>
+        <span class="tech-badge">Docker Compose</span>
+        <span class="tech-badge">Pydantic</span>
+        <span class="tech-badge">Alembic</span>
+        <span class="tech-badge">pytest</span>
+        <span class="tech-badge">asyncio</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Metrics -->
+  <section id="metrics">
+    <div class="container">
+      <div class="animate">
+        <div class="section-label">// Project Metrics</div>
+        <h2 class="section-title">By the Numbers</h2>
+      </div>
+      <div class="metrics-row">
+        <div class="metric-card animate">
+          <span class="metric-value">10,255</span>
+          <span class="metric-label">Lines of Code</span>
+        </div>
+        <div class="metric-card animate">
+          <span class="metric-value">92</span>
+          <span class="metric-label">Files</span>
+        </div>
+        <div class="metric-card animate">
+          <span class="metric-value">6</span>
+          <span class="metric-label">ORM Models</span>
+        </div>
+        <div class="metric-card animate">
+          <span class="metric-value">5</span>
+          <span class="metric-label">Device Types</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Start -->
+  <section id="quickstart">
+    <div class="container">
+      <div class="animate">
+        <div class="section-label">// Quick Start</div>
+        <h2 class="section-title">Get Running</h2>
+      </div>
+      <div class="code-block animate">
+        <div class="code-header">
+          <div class="code-dots"><span></span><span></span><span></span></div>
+          terminal
+        </div>
+        <div class="code-body">
+<pre><span class="cm"># Clone the repository</span>
+<span class="cmd">git clone</span> https://github.com/DarthAether/IoTGuard.git
+<span class="cmd">cd</span> IoTGuard
+
+<span class="cm"># Copy environment config</span>
+<span class="cmd">cp</span> .env.example .env
+<span class="cm"># Add your Gemini API key to .env</span>
+
+<span class="cm"># Start all services</span>
+<span class="cmd">docker-compose up</span> <span class="flag">-d</span>
+
+<span class="cm"># Access services</span>
+<span class="cm"># API:        http://localhost:8000/docs</span>
+<span class="cm"># Grafana:    http://localhost:3000</span>
+<span class="cm"># Prometheus: http://localhost:9090</span>
+
+<span class="cm"># Run tests</span>
+<span class="cmd">docker-compose exec</span> api <span class="cmd">pytest</span> <span class="flag">-v</span></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- API Overview -->
+  <section id="api">
+    <div class="container">
+      <div class="animate">
+        <div class="section-label">// API Overview</div>
+        <h2 class="section-title">Key Endpoints</h2>
+      </div>
+      <div class="arch-block animate" style="padding: 0;">
+        <table class="api-table">
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Endpoint</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="method method-post">POST</span></td>
+              <td class="endpoint">/api/v1/analyze</td>
+              <td class="desc">Analyze IoT command for security risks</td>
+            </tr>
+            <tr>
+              <td><span class="method method-get">GET</span></td>
+              <td class="endpoint">/api/v1/devices</td>
+              <td class="desc">List registered IoT devices</td>
+            </tr>
+            <tr>
+              <td><span class="method method-post">POST</span></td>
+              <td class="endpoint">/api/v1/devices</td>
+              <td class="desc">Register a new IoT device</td>
+            </tr>
+            <tr>
+              <td><span class="method method-get">GET</span></td>
+              <td class="endpoint">/api/v1/rules</td>
+              <td class="desc">List security rules</td>
+            </tr>
+            <tr>
+              <td><span class="method method-post">POST</span></td>
+              <td class="endpoint">/api/v1/rules</td>
+              <td class="desc">Create a new security rule</td>
+            </tr>
+            <tr>
+              <td><span class="method method-post">POST</span></td>
+              <td class="endpoint">/api/v1/mqtt/publish</td>
+              <td class="desc">Publish command to MQTT device</td>
+            </tr>
+            <tr>
+              <td><span class="method method-get">GET</span></td>
+              <td class="endpoint">/metrics</td>
+              <td class="desc">Prometheus metrics endpoint</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="links-row animate">
+        <a href="https://github.com/DarthAether/IoTGuard" class="link-btn primary" target="_blank" rel="noopener">
+          View on GitHub
+        </a>
+        <a href="#architecture" class="link-btn">
+          Architecture Diagram
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>Built by Vijaya Sivanjan Kommuri &nbsp;|&nbsp; GitHub: <a href="https://github.com/DarthAether" target="_blank" rel="noopener">DarthAether</a></p>
+    </div>
+  </footer>
+
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.animate').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>
